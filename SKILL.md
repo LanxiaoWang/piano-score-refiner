@@ -1,48 +1,50 @@
 ---
 name: piano-score-refiner
 description: >-
-  将钢琴自动扒谱或 MIDI 导入生成的初稿整理为清晰易读、便于视奏的钢琴谱。适用于 MIDI、MusicXML、MuseScore 工程的左右手分配、持音跨度检查、多声部与冗余休止清理、节拍记谱、谱号与音名标注及版面优化，并在修改后核对力度与踏板等播放数据。
+  Refine automatically transcribed or MIDI-imported piano drafts into clear, sight-readable scores. Use for MIDI, MusicXML, or MuseScore projects that need hand allocation, held-note span checks, voice and redundant-rest cleanup, rhythmic notation, clefs, pitch-name labels, or layout improvements, with checks that velocity and pedal data survive editing.
 ---
 
 # Piano Score Refiner
 
-用于整理钢琴扒谱初稿并保护原有演奏数据的执行指南。处理具体乐谱前请先阅读同目录下的 [SOP.md](SOP.md) 获取详细判定规则与验收标准；[README.md](README.md) 提供项目概述与上游转录工作流参考；[`scripts/`](scripts/) 目录提供从音频/MIDI 生成初稿（`run.py`）及校验 MusicXML 事件一致性（`verify_score.py`）的辅助脚本。
+[English](SKILL.md) | [简体中文](SKILL.zh-CN.md)
 
-## 输入与适用范围
+An execution guide for refining piano transcription drafts while protecting their performance data. Before working on a score, read [SOP.md](SOP.md) in the same directory for detailed decision rules and acceptance criteria. [README.md](README.md) provides the project overview and reference transcription workflow. The [`scripts/`](scripts/) directory contains helpers for generating drafts from audio/MIDI (`run.py`) and checking MusicXML event consistency (`verify_score.py`).
 
-- **支持格式**：接收 `.mid / .midi`、`.musicxml / .mxl`、`.mscz / .mscx`。优先解析结构化乐谱文件；图片或截图用于定位具体小节问题与核对排版效果。
-- **补充材料**：原音频可作为节奏与漏音核对的参考。若仅有扫描版 PDF 或图片，需先通过 OMR 工具或人工方式转为结构化乐谱后再处理。
-- **范围确认**：开始前确认目标曲目、页码或小节范围。仅在缺少关键偏好（如是否允许删减音符、目标手幅限制等）时向用户提问。
+## Inputs and Scope
 
-## 处理模式
+- **Supported formats:** Accept `.mid / .midi`, `.musicxml / .mxl`, and `.mscz / .mscx`. Parse structured score files first; use images or screenshots to locate problematic measures and inspect layout.
+- **Supporting material:** Original audio can help check rhythm and missing notes. Scanned PDFs or images must first be converted to structured notation through OMR or manual transcription.
+- **Scope confirmation:** Establish the target piece and page or measure range before starting. Ask the user only when a key preference is missing, such as permission to omit notes or a target hand-span limit.
 
-默认执行**谱面优化**模式。除非用户明确要求，否则保持原有的音符与演奏数据不变：
+## Processing Modes
 
-| 模式 | 操作范围 |
+Default to **notation refinement**. Preserve the existing notes and performance data unless the user explicitly requests otherwise:
+
+| Mode | Scope |
 |---|---|
-| **谱面优化（默认）** | 调整左右手分配、声部、休止符显示、谱号、节奏拼写、音名提示与版面布局；严格保留实际音高、起止时间、逐音力度、速度和踏板等控制事件 |
-| **演奏参数调整** | 按用户要求调整力度、时序、踏板或回放音色，并记录与原文件的差异 |
-| **简化与改编** | 按用户要求删减音符、移调、移八度、截短长音或改写滚奏，并列出所有改动位置 |
+| **Notation refinement (default)** | Adjust hand allocation, voices, rest visibility, clefs, rhythmic spelling, pitch-name labels, and layout; strictly preserve sounding pitches, start/end times, per-note velocities, tempo, and controller events such as pedal |
+| **Performance-parameter adjustment** | Adjust dynamics, timing, pedal, or playback timbre as requested, and document differences from the original |
+| **Simplification and arrangement** | Omit notes, transpose, shift octaves, shorten sustained notes, or introduce rolled chords as requested, listing every affected position |
 
-对已有认可工程做纯显示优化时，以当前工程为基线，不重新量化。若首次从原始演奏 MIDI 制谱需要量化，需保留原始演奏 MIDI，并说明量化吸附带来的时序变化。
+For display-only refinement of an already approved project, use that project as the baseline and do not requantize. If initial score creation from raw performance MIDI requires quantization, retain the original performance MIDI and explain the timing changes introduced by snapping.
 
-## 执行流程
+## Workflow
 
-1. **备份与解析基线**
-   备份当前工程文件，保留原始输入。按 [SOP 第 1–2 节](SOP.md#1-输入格式与数据特征) 解析谱表、声部、音符起止、延音线、移调、速度与控制事件，按科学音高（中央 C = C4）计算实际音名与八度。
-2. **核对节拍与小节结构**
-   按 [SOP 第 3 节](SOP.md#3-节拍量化与多声部记谱) 检查拍号、弱起、自由速度、各声部时值、符杠分组与延音关系。确保所有谱表小节时值完整，修复导入时出现的不完整小节（Incomplete measure）。
-3. **优化双手分配**
-   按 [SOP 第 4 节](SOP.md#4-双手分配与指法建议) 结合新起音、当前仍在保持的长音（含跨小节延音）及后续手位移动分配左右手。调整换手时需同时评估接收手原有的音符负担；超过八度的跨度若无法在不改音的前提下化解，保留原音符并记录小节位置供用户确认。
-4. **清理多声部与冗余休止**
-   按 [SOP 第 3.1 节](SOP.md#31-多声部和弦与冗余休止清理) 梳理声部。仅将起音、时值与延音关系完全相容的音符并为单符干和弦；隐藏已被同谱表其他声部完整覆盖的冗余辅助休止符，保留整手静默休止与读谱所需的节拍休止。隐藏休止符时仅修改可见性属性（Visibility），保持内部声部时值完整。
-5. **优化认音与版面**
-   按 [SOP 第 5 节](SOP.md#5-谱面可读性与辅助标注) 处理过多加线、局部 8va、谱号切换、系统间距与翻页。按需在加线较多或跨八度大跳处添加无播放副作用的稀疏音名提示（使用原谱拼写加八度，如 `C2`、`G6`），避免与指法混淆；按需隐藏行末重复的预告谱号。
-6. **校验播放数据与渲染结果**
-   按 [SOP 第 6–7 节](SOP.md#6-保护播放与控制器数据) 逐项比对修改前后的音高、起音、结束时间、逐音力度、速度与踏板事件，保留原有的音色与混响配置。在目标打谱软件中重新打开工程并渲染所有修改页，确认无符号重叠、遮挡或意外丢音。
+1. **Back up and parse the baseline**
+   Back up the current project and retain the original input. Following [SOP sections 1–2](SOP.md#1-input-formats-and-available-data), parse staves, voices, note starts and ends, ties, transposition, tempo, and controller events. Calculate sounding pitch names and octaves using scientific pitch notation, with middle C = C4.
+2. **Check rhythm and measure structure**
+   Following [SOP section 3](SOP.md#3-quantization-and-polyphonic-notation), check meter, pickups, rubato, voice durations, beam groups, and tie relationships. Keep measure durations complete on every staff and repair any `Incomplete measure` import errors.
+3. **Refine hand allocation**
+   Following [SOP section 4](SOP.md#4-hand-allocation-and-fingering-suggestions), consider new attacks, notes still being held—including ties across measures—and subsequent hand movements. Before transferring notes, also assess the receiving hand's existing workload. If a span beyond an octave cannot be resolved without changing notes, retain the original notes and record the measure for the user to review.
+4. **Clean up voices and redundant rests**
+   Following [SOP section 3.1](SOP.md#31-voices-chords-and-redundant-rests), review voice structure. Combine notes into single-stem chords only when their attacks, durations, and tie relationships are fully compatible. Hide redundant auxiliary rests fully covered by other voices on the same staff, retaining rests that indicate whole-hand silence or clarify the beat. Change visibility only, keeping internal voice durations complete.
+5. **Improve pitch reading and layout**
+   Following [SOP section 5](SOP.md#5-score-readability-and-reading-aids), address excessive ledger lines, local 8va markings, clef changes, system spacing, and page turns. Where useful, add sparse pitch-name labels with no playback effect at ledger-line-heavy notes or leaps across octaves. Use the original spelling plus octave, such as `C2` or `G6`, and distinguish labels from fingerings. Hide duplicated end-of-system clef reminders when appropriate.
+6. **Verify playback data and rendered output**
+   Following [SOP sections 6–7](SOP.md#6-protecting-playback-and-controller-data), compare pitches, attacks, note ends, individual velocities, tempo, and pedal events before and after editing, retaining existing sound and reverb settings. Reopen the project in the target notation software and render every changed page, checking for overlapping symbols, obscured elements, or unintended missing notes.
 
-## 交付要求
+## Delivery Requirements
 
-- **视图与导出检查**：分别核对打谱软件编辑界面（如 MuseScore 的隐藏元素灰色显示开关 `Score/showInvisible`）与导出的 PDF 页面，按用户习惯保存工程视图状态。
-- **文件交付**：输出整理后的可编辑工程文件（`.mscz`）、`.pdf` 以及所需的 `.mid` 文件；若同时存在原始演奏 MIDI 与量化记谱 MIDI，分别命名并注明用途。
-- **修改说明**：附带简明的修改摘要，列出已调整的小节、未做删改的大跨度难点位置，以及事件对比和渲染校验结果。
+- **Editor and export checks:** Inspect both the notation editor's display—for example, MuseScore's gray hidden-element view controlled by `Score/showInvisible`—and the exported PDF pages. Save the project view state according to the user's preference.
+- **Files:** Deliver the refined editable project (`.mscz`), `.pdf`, and any requested `.mid` files. If both original performance MIDI and quantized notation MIDI are retained, name them separately and explain their purposes.
+- **Change summary:** Provide a concise summary of affected measures, retained large-span difficulties, and the event-comparison and rendering checks.

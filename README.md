@@ -84,8 +84,10 @@ This Skill is not tied to a particular transcription model. If you already have 
 |---|---|
 | [README.md](README.md) | English project background, features, usage, and reference toolchain |
 | [README.zh-CN.md](README.zh-CN.md) | Chinese version of the project overview and usage guide |
-| [SKILL.md](SKILL.md) | Agent entry point defining when to use the Skill, processing modes, and the core workflow |
-| [SOP.md](SOP.md) | Detailed rules for input parsing, rhythm and voices, hand allocation, layout annotations, and acceptance checks |
+| [SKILL.md](SKILL.md) | English Agent entry point defining when to use the Skill, processing modes, and the core workflow |
+| [SKILL.zh-CN.md](SKILL.zh-CN.md) | Chinese version of the Agent instructions |
+| [SOP.md](SOP.md) | English rules for input parsing, rhythm and voices, hand allocation, layout annotations, and acceptance checks |
+| [SOP.zh-CN.md](SOP.zh-CN.md) | Chinese version of the refinement rules and acceptance criteria |
 | [scripts/run.py](scripts/run.py) | Helper script for generating draft MusicXML, quantized MIDI, and a preview PDF from audio/video or raw MIDI |
 | [scripts/verify_score.py](scripts/verify_score.py) | Check MusicXML notes, start/end timings, and cross-measure ties against the quantized MIDI |
 | [LICENSE](LICENSE) | MIT License |

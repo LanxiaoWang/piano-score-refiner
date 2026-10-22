@@ -84,8 +84,10 @@
 |---|---|
 | [README.md](README.md) | English project overview and usage guide |
 | [README.zh-CN.md](README.zh-CN.md) | 中文版项目背景、功能概览、使用方法与参考工具链 |
-| [SKILL.md](SKILL.md) | AI Agent 的入口文件，定义适用场景、处理模式与核心流程 |
-| [SOP.md](SOP.md) | 详细修谱规范，涵盖输入解析、节拍与声部、双手分配、版面标注及验收标准 |
+| [SKILL.md](SKILL.md) | 英文 AI Agent 入口，定义适用场景、处理模式与核心流程 |
+| [SKILL.zh-CN.md](SKILL.zh-CN.md) | 中文版 AI Agent 执行说明 |
+| [SOP.md](SOP.md) | 英文修谱规范，涵盖输入解析、节拍与声部、双手分配、版面标注及验收标准 |
+| [SOP.zh-CN.md](SOP.zh-CN.md) | 中文版修谱规则与验收标准 |
 | [scripts/run.py](scripts/run.py) | 从音频/视频或原始 MIDI 生成初稿 MusicXML、量化 MIDI 与预览 PDF 的辅助脚本 |
 | [scripts/verify_score.py](scripts/verify_score.py) | 核对 MusicXML 音符、起止时值与跨小节延音线是否与量化 MIDI 一致的校验脚本 |
 | [LICENSE](LICENSE) | MIT 开源许可证 |
