@@ -65,16 +65,55 @@ This Skill is not tied to a particular transcription model. If you already have 
 | music21 | Process rhythms and voices and generate draft MusicXML | [Official documentation](https://www.music21.org/music21docs/) |
 | MuseScore Studio | Edit scores, adjust voices and layout, play back, and export PDFs | [Official download](https://musescore.org/en/download) |
 
-### Starting from Audio
+### Requirements
 
-1. Install [Python](https://www.python.org/downloads/) and FFmpeg, then create a virtual environment.
-2. Install a suitable CPU or CUDA build from the [PyTorch website](https://pytorch.org/get-started/locally/), then follow the official instructions to install Transkun, `pretty_midi`, and `music21`.
-3. Run [`scripts/run.py`](scripts/run.py) to turn piano audio or MIDI into a performance MIDI (`performance.mid`), a quantized MIDI (`score-quantized.mid`), draft `score.musicxml`, and a preview PDF. Use [`scripts/verify_score.py`](scripts/verify_score.py) to check MusicXML notes and ties:
+- **Python 3.12** (tested) on Windows or Linux, in a virtual environment.
+- **FFmpeg** must be on `PATH` (check with `ffmpeg -version`); `run.py` stops with `FFmpeg is not on PATH` otherwise. Not needed when the input is already MIDI.
+- **GPU:** `run.py` defaults to `--device cuda` (tested with an NVIDIA GPU and CUDA 12.4). Without a CUDA GPU, pass `--device cpu`.
+- **Model weights:** Transkun ships its weights inside the package (`transkun/pretrained/2.0.pt`); no separate download is required.
+- **MuseScore Studio 4.x** (optional): used for PDF export only when `--musescore` is passed. Otherwise the PDF is rendered with Verovio + resvg + PyMuPDF.
+- **Soundfonts** (optional, playback only): [Salamander Grand Piano](https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html) (e.g. the SalC5Light2 `.sf2` build) and [GeneralUser GS](https://schristiancollins.com/generaluser.php). Copy `.sf2` files into `Documents/MuseScore4/SoundFonts`; see the [MuseScore handbook](https://musescore.org/en/handbook/4/soundfonts-and-sfz-files).
+
+### Install
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate            # Windows PowerShell; Linux/macOS: source .venv/bin/activate
+# PyTorch first, from the official index (use .../whl/cpu for CPU only)
+pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+pip install -r requirements.txt
+```
+
+On Windows, `ncls` (pulled in through Transkun's dependencies) may need to be compiled; install the Microsoft C++ Build Tools if `pip` fails on it.
+
+### Run
+
+1. Run [`scripts/run.py`](scripts/run.py) to turn piano audio/video or MIDI into a performance MIDI (`performance.mid`), a quantized MIDI (`score-quantized.mid`), draft `score.musicxml`, a preview PDF, and `run.json`. Use [`scripts/verify_score.py`](scripts/verify_score.py) to check MusicXML notes and ties:
    ```bash
    python scripts/run.py input_audio.mp3 --out ./draft_out --device cuda
+   python scripts/run.py input_audio.mp3 --out ./draft_cpu --device cpu --musescore "C:\Program Files\MuseScore 4\bin\MuseScore4.exe"
    python scripts/verify_score.py ./draft_out
    ```
-4. Give the generated draft to an AI assistant for refinement with this Skill and MuseScore.
+   `--out` must be a new directory; existing directories are not overwritten.
+2. Give the generated draft to an AI assistant for refinement with this Skill and MuseScore.
+
+Main `run.py` options:
+
+| Option | Usage |
+|---|---|
+| `--device cuda\|cpu` | Inference device; default `cuda` |
+| `--musescore <exe>` | Export the PDF with MuseScore instead of the default Verovio renderer |
+| `--bpm 80 --meter 3/4` | Set tempo and meter manually; the default `4/4` is an assumption, not detection |
+| `--grid 4` | Subdivisions per quarter note (2, 3, 4, 6, 8); 4 = sixteenth-note grid |
+| `--split 60` | MIDI pitch threshold for the initial hand split; notes below go to the left hand |
+| `--key G` | Key signature, e.g. `G` for G major, `e` for E minor |
+| `--title` | Score title |
+| `--segment 16` | Transcription window in seconds (step is half); reduce if GPU memory is tight |
+| `--midi-only` | Transcribe to MIDI only and skip score generation |
+| `--timing-map <json>` | Explicit time map, e.g. `{"seconds":[0,1,2],"quarters":[0,2,4]}` |
+| `--hand-map <json>` | Per-section split and left-hand clef, e.g. `[{"seconds":0,"split":73,"left_clef":"treble"}]` |
+
+An existing `performance.mid` can be passed as input to redo only the score step without running the model.
 
 > **Reference environment:** This workflow was tested with Python 3.12, PyTorch/torchaudio 2.6.0 (CUDA 12.4), Transkun 2.0.1, music21 10.5.0, and MuseScore Studio 4.7.5. Salamander C5 Light and GeneralUser GS were also used for playback. Soundfonts affect playback timbre, not note recognition or score refinement.
 
@@ -88,6 +127,7 @@ This Skill is not tied to a particular transcription model. If you already have 
 | [SKILL.zh-CN.md](SKILL.zh-CN.md) | Chinese version of the Agent instructions |
 | [SOP.md](SOP.md) | English rules for input parsing, rhythm and voices, hand allocation, layout annotations, and acceptance checks |
 | [SOP.zh-CN.md](SOP.zh-CN.md) | Chinese version of the refinement rules and acceptance criteria |
+| [requirements.txt](requirements.txt) | Python dependencies for the helper scripts (install PyTorch separately) |
 | [scripts/run.py](scripts/run.py) | Helper script for generating draft MusicXML, quantized MIDI, and a preview PDF from audio/video or raw MIDI |
 | [scripts/verify_score.py](scripts/verify_score.py) | Check MusicXML notes, start/end timings, and cross-measure ties against the quantized MIDI |
 | [LICENSE](LICENSE) | MIT License |
@@ -98,6 +138,6 @@ Feedback through Issues and Pull Requests is welcome. For score-refinement probl
 
 ## Acknowledgments and License
 
-Parts of the toolchain were inspired by [piano-2-sheet](https://github.com/thanhpt1110/piano-2-sheet). Earlier versions used Verovio, resvg_py, and PyMuPDF for off-screen rendering tests; the workflow now uses MuseScore Studio for export.
+Parts of the toolchain were inspired by [piano-2-sheet](https://github.com/thanhpt1110/piano-2-sheet). `run.py` renders draft PDFs with Verovio, resvg_py, and PyMuPDF by default; pass `--musescore` to export with MuseScore Studio instead.
 
-This project is released under the [MIT License](LICENSE). Upstream tools and models retain their respective licenses.
+This project is released under the [MIT License](LICENSE). Upstream tools and models retain their respective licenses; note that PyMuPDF is AGPL-3.0 (or commercial) and Verovio is LGPL-3.0, so the combined toolchain is not MIT as a whole.

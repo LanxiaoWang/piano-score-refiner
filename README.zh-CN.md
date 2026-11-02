@@ -65,16 +65,55 @@
 | music21 | 处理节奏、声部并生成 MusicXML 初稿 | [官方文档](https://www.music21.org/music21docs/) |
 | MuseScore Studio | 乐谱编辑、声部与排版微调、回放及导出 PDF | [官网下载](https://musescore.org/en/download) |
 
-### 从音频开始的准备步骤
+### 环境要求
 
-1. 安装 [Python](https://www.python.org/downloads/) 与 FFmpeg，并创建虚拟环境。
-2. 根据硬件配置在 [PyTorch 官网](https://pytorch.org/get-started/locally/) 安装对应的 CPU 或 CUDA 版本，随后按官方说明安装 Transkun、`pretty_midi` 与 `music21`。
-3. 运行 [`scripts/run.py`](scripts/run.py) 将钢琴音频或 MIDI 转为原始演奏 MIDI（`performance.mid`）、量化 MIDI（`score-quantized.mid`）、初稿 `score.musicxml` 及预览 PDF，并可用 [`scripts/verify_score.py`](scripts/verify_score.py) 核对 MusicXML 音符与延音线完整性：
+- **Python 3.12**（已测试），Windows 或 Linux，建议使用虚拟环境。
+- **FFmpeg** 必须在 `PATH` 中（可用 `ffmpeg -version` 检查），否则 `run.py` 会报 `FFmpeg is not on PATH`。输入已是 MIDI 时不需要。
+- **GPU**：`run.py` 默认 `--device cuda`（在 NVIDIA 显卡 + CUDA 12.4 下测试）。没有 CUDA 显卡时请加 `--device cpu`。
+- **模型权重**：Transkun 安装包自带权重（`transkun/pretrained/2.0.pt`），无需另外下载。
+- **MuseScore Studio 4.x**（可选）：仅在传入 `--musescore` 时用于导出 PDF；否则使用 Verovio + resvg + PyMuPDF 渲染。
+- **音色库**（可选，仅影响回放）：[Salamander Grand Piano](https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html)（如 SalC5Light2 `.sf2` 版本）与 [GeneralUser GS](https://schristiancollins.com/generaluser.php)。将 `.sf2` 放入 `文档/MuseScore4/SoundFonts`，参见 [MuseScore 手册](https://musescore.org/en/handbook/4/soundfonts-and-sfz-files)。
+
+### 安装
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate            # Windows PowerShell；Linux/macOS：source .venv/bin/activate
+# 先从 PyTorch 官方索引安装（仅 CPU 时改用 .../whl/cpu）
+pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+pip install -r requirements.txt
+```
+
+Windows 上 Transkun 依赖链中的 `ncls` 可能需要编译；若 `pip` 安装失败，请先安装 Microsoft C++ Build Tools。
+
+### 运行
+
+1. 运行 [`scripts/run.py`](scripts/run.py) 将钢琴音频/视频或 MIDI 转为原始演奏 MIDI（`performance.mid`）、量化 MIDI（`score-quantized.mid`）、初稿 `score.musicxml`、预览 PDF 及 `run.json`，并可用 [`scripts/verify_score.py`](scripts/verify_score.py) 核对 MusicXML 音符与延音线完整性：
    ```bash
    python scripts/run.py input_audio.mp3 --out ./draft_out --device cuda
+   python scripts/run.py input_audio.mp3 --out ./draft_cpu --device cpu --musescore "C:\Program Files\MuseScore 4\bin\MuseScore4.exe"
    python scripts/verify_score.py ./draft_out
    ```
-4. 将生成的初稿交给 AI 助手结合本 Skill 与 MuseScore 进行谱面精修。
+   `--out` 必须是尚不存在的新目录，不会覆盖已有结果。
+2. 将生成的初稿交给 AI 助手结合本 Skill 与 MuseScore 进行谱面精修。
+
+`run.py` 常用参数：
+
+| 参数 | 用法 |
+|---|---|
+| `--device cuda\|cpu` | 推理设备，默认 `cuda` |
+| `--musescore <exe>` | 用 MuseScore 导出 PDF，替代默认的 Verovio 渲染 |
+| `--bpm 80 --meter 3/4` | 人工指定速度与拍号；默认 `4/4` 是假设，不是检测结果 |
+| `--grid 4` | 每四分音符等分数（2、3、4、6、8），4 即十六分音符网格 |
+| `--split 60` | 初始分手的 MIDI 音高阈值，低于它归左手 |
+| `--key G` | 调号，如 `G` 为 G 大调，`e` 为 e 小调 |
+| `--title` | 谱面标题 |
+| `--segment 16` | 转录分窗秒数（步长为一半），显存紧张时可减小 |
+| `--midi-only` | 只转录 MIDI，跳过制谱 |
+| `--timing-map <json>` | 明确的时间映射，如 `{"seconds":[0,1,2],"quarters":[0,2,4]}` |
+| `--hand-map <json>` | 分段分手音高与左手谱号，如 `[{"seconds":0,"split":73,"left_clef":"treble"}]` |
+
+已有 `performance.mid` 时可直接作为输入，只重做制谱而不重新运行模型。
 
 > **环境参考**：本工作流在 Python 3.12、PyTorch/torchaudio 2.6.0 (CUDA 12.4)、Transkun 2.0.1、music21 10.5.0 及 MuseScore Studio 4.7.5 环境下测试通过。回放音色曾配合 Salamander C5 Light 与 GeneralUser GS 使用（音色库仅影响回放听感，不影响音符识别与修谱）。
 
@@ -88,6 +127,7 @@
 | [SKILL.zh-CN.md](SKILL.zh-CN.md) | 中文版 AI Agent 执行说明 |
 | [SOP.md](SOP.md) | 英文修谱规范，涵盖输入解析、节拍与声部、双手分配、版面标注及验收标准 |
 | [SOP.zh-CN.md](SOP.zh-CN.md) | 中文版修谱规则与验收标准 |
+| [requirements.txt](requirements.txt) | 辅助脚本的 Python 依赖（PyTorch 需单独安装） |
 | [scripts/run.py](scripts/run.py) | 从音频/视频或原始 MIDI 生成初稿 MusicXML、量化 MIDI 与预览 PDF 的辅助脚本 |
 | [scripts/verify_score.py](scripts/verify_score.py) | 核对 MusicXML 音符、起止时值与跨小节延音线是否与量化 MIDI 一致的校验脚本 |
 | [LICENSE](LICENSE) | MIT 开源许可证 |
@@ -98,6 +138,6 @@
 
 ## 致谢与许可
 
-部分工具链组合思路参考了 [piano-2-sheet](https://github.com/thanhpt1110/piano-2-sheet)。早期版本曾使用 Verovio、resvg_py 与 PyMuPDF 进行离屏渲染测试，现已统一采用 MuseScore Studio 导出。
+部分工具链组合思路参考了 [piano-2-sheet](https://github.com/thanhpt1110/piano-2-sheet)。`run.py` 默认使用 Verovio、resvg_py 与 PyMuPDF 渲染初稿 PDF；传入 `--musescore` 时改用 MuseScore Studio 导出。
 
-本项目采用 [MIT License](LICENSE) 开源，相关上游工具与模型遵循各自原有的开源许可证。
+本项目采用 [MIT License](LICENSE) 开源，相关上游工具与模型遵循各自原有的开源许可证；其中 PyMuPDF 为 AGPL-3.0／商业双许可，Verovio 为 LGPL-3.0，整套工具链不能统称 MIT。

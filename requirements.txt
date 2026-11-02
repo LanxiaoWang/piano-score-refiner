@@ -1,0 +1,10 @@
+# Install PyTorch first (see README): torch==2.6.0 torchaudio==2.6.0 from the cu124 or cpu index.
+transkun==2.0.1
+pretty_midi==0.2.11.post0
+music21==10.5.0
+numpy
+soundfile==0.14.0
+soxr==1.1.0
+pymupdf==1.28.2
+verovio==6.3.0
+resvg_py==0.5.0
